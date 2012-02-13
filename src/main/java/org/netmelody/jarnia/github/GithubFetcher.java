@@ -30,6 +30,17 @@ public final class GithubFetcher {
     }
     
     public String fetchLatestShaFor(String owner, String repo, String branch) {
+        final String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
+        String result;
+        
+        result = fetch(url);
+        
+        final JsonElement json = jsonParser.parse(result);
+        JsonArray branches = json.getAsJsonArray();
+        return find(branches, isBranchNamed(branch)).getAsJsonObject().get("commit").getAsJsonObject().get("sha").getAsString();
+    }
+
+    private String fetch(final String url) {
         final SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
         schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
@@ -44,16 +55,13 @@ public final class GithubFetcher {
         DefaultHttpClient client = new DefaultHttpClient(connectionManager, params);
 
         try {
-            final HttpGet httpget = new HttpGet(String.format("https://api.github.com/repos/%s/%s/branches", owner, repo));
+            final HttpGet httpget = new HttpGet(url);
             httpget.setHeader("Accept", "application/json");
 
             final ResponseHandler<String> responseHandler = new BasicResponseHandler();
             final String result = client.execute(httpget, responseHandler);
             client.getConnectionManager().shutdown();
-            
-            final JsonElement json = jsonParser.parse(result);
-            JsonArray branches = json.getAsJsonArray();
-            return find(branches, isBranchNamed(branch)).getAsJsonObject().get("commit").getAsJsonObject().get("sha").getAsString();
+            return result;
         }
         catch (HttpResponseException e) {
             if (e.getStatusCode() == 404) {
