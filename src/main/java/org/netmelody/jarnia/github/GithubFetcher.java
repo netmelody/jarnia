@@ -14,9 +14,22 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.HttpParams;
 
+import com.google.common.base.Predicate;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import static com.google.common.collect.Iterables.find;
+
 public final class GithubFetcher {
 
-    public String fetch() {
+    private final JsonParser jsonParser = new JsonParser();
+    
+    public String fetchLatestShaFor() {
+        return fetchLatestShaFor("netmelody", "ci-eye", "master");
+    }
+    
+    public String fetchLatestShaFor(String owner, String repo, String branch) {
         final SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
         schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
@@ -31,13 +44,16 @@ public final class GithubFetcher {
         DefaultHttpClient client = new DefaultHttpClient(connectionManager, params);
 
         try {
-            final HttpGet httpget = new HttpGet("https://api.github.com/repos/netmelody/ci-eye/branches");
+            final HttpGet httpget = new HttpGet(String.format("https://api.github.com/repos/%s/%s/branches", owner, repo));
             httpget.setHeader("Accept", "application/json");
 
             final ResponseHandler<String> responseHandler = new BasicResponseHandler();
             final String result = client.execute(httpget, responseHandler);
             client.getConnectionManager().shutdown();
-            return result;
+            
+            final JsonElement json = jsonParser.parse(result);
+            JsonArray branches = json.getAsJsonArray();
+            return find(branches, isBranchNamed(branch)).getAsJsonObject().get("commit").getAsJsonObject().get("sha").getAsString();
         }
         catch (HttpResponseException e) {
             if (e.getStatusCode() == 404) {
@@ -48,5 +64,13 @@ public final class GithubFetcher {
         catch (Exception e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private Predicate<JsonElement> isBranchNamed(final String branchName) {
+        return new Predicate<JsonElement>() {
+            @Override public boolean apply(JsonElement input) {
+                return branchName.equals(input.getAsJsonObject().get("name").getAsString());
+            }
+        };
     }
 }
