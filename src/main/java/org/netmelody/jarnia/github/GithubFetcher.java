@@ -14,9 +14,12 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.HttpParams;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import static com.google.common.collect.Iterables.find;
@@ -31,15 +34,16 @@ public final class GithubFetcher {
     
     public String fetchLatestShaFor(String owner, String repo, String branch) {
         final String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
-        String result;
-        
-        result = fetch(url);
-        
-        final JsonElement json = jsonParser.parse(result);
-        JsonArray branches = json.getAsJsonArray();
+        final JsonArray branches = jsonParser.parse(fetch(url)).getAsJsonArray();
         return find(branches, isBranchNamed(branch)).getAsJsonObject().get("commit").getAsJsonObject().get("sha").getAsString();
     }
-
+    
+    public Iterable<FileRef> fetchFilesFor(String owner, String repo, String sha) {
+        final String url = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", owner, repo, sha);
+        final JsonArray nodes = jsonParser.parse(fetch(url)).getAsJsonObject().get("tree").getAsJsonArray();
+        return Iterables.transform(Iterables.filter(nodes, blobs()), toFileRefs());
+    }
+    
     private String fetch(final String url) {
         final SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
@@ -80,5 +84,37 @@ public final class GithubFetcher {
                 return branchName.equals(input.getAsJsonObject().get("name").getAsString());
             }
         };
+    }
+    
+    private Predicate<JsonElement> blobs() {
+        return new Predicate<JsonElement>() {
+            @Override public boolean apply(JsonElement input) {
+                return "blob".equals(input.getAsJsonObject().get("type").getAsString());
+            }
+        };
+    }
+    
+    private Function<JsonElement, FileRef> toFileRefs() {
+        return new Function<JsonElement, FileRef>() {
+            @Override public FileRef apply(JsonElement input) {
+                final JsonObject node = input.getAsJsonObject();
+                return new FileRef(node.get("path").getAsString(), node.get("size").getAsInt());
+            }
+        };
+    }
+
+    public static final class FileRef {
+        public final String path;
+        public final int size;
+
+        public FileRef(String path, int size) {
+            this.path = path;
+            this.size = size;
+        }
+        
+        @Override
+        public String toString() {
+            return path + " <" + size + ">";
+        }
     }
 }
