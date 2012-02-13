@@ -28,10 +28,6 @@ public final class GithubFetcher {
 
     private final JsonParser jsonParser = new JsonParser();
     
-    public String fetchLatestShaFor() {
-        return fetchLatestShaFor("netmelody", "ci-eye", "master");
-    }
-    
     public String fetchLatestShaFor(String owner, String repo, String branch) {
         final String url = String.format("https://api.github.com/repos/%s/%s/branches", owner, repo);
         final JsonArray branches = jsonParser.parse(fetch(url)).getAsJsonArray();
