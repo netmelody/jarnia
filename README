@@ -1,2 +1,5 @@
 https://api.github.com/repos/netmelody/ci-eye/branches
 https://api.github.com/repos/netmelody/ci-eye/git/trees/af8ae09d84624c4fa69c7d405cf254748b8ef152?recursive=1
+http://search.maven.org/solrsearch/select?q=id:%22com.google.inject:guice%22
+http://search.maven.org/solrsearch/select?q=parentId%3A%22-2106241792%22%20AND%20type%3A1&rows=100000&core=filelisting&wt=json
+http://search.maven.org/solrsearch/select?q=name%3A%22guava-11.0.1.jar%22%20AND%20type%3A1&rows=100000&core=filelisting&wt=json

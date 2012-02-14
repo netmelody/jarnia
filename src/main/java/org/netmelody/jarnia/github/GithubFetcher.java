@@ -16,6 +16,7 @@ import org.apache.http.params.HttpParams;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -38,6 +39,16 @@ public final class GithubFetcher {
         final String url = String.format("https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1", owner, repo, sha);
         final JsonArray nodes = jsonParser.parse(fetch(url)).getAsJsonObject().get("tree").getAsJsonArray();
         return Iterables.transform(Iterables.filter(nodes, blobs()), toFileRefs());
+    }
+    
+    public String findVer(Iterable<FileRef> jars) {
+        FileRef ref = Iterables.find(jars, Predicates.alwaysTrue());
+        
+        final String jarName = ref.path.substring(ref.path.lastIndexOf("/") + 1);
+        System.out.println(jarName);
+        final String url = "http://search.maven.org/solrsearch/select?q=name%3A%22" + jarName + "%22%20AND%20type%3A1&rows=100000&core=filelisting&wt=json";
+        System.out.println(fetch(url));
+        return "";
     }
     
     private String fetch(final String url) {
