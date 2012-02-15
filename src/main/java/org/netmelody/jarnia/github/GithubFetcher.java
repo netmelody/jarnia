@@ -30,16 +30,6 @@ public final class GithubFetcher {
         return Iterables.transform(Iterables.filter(nodes, blobs()), toFileRefs());
     }
     
-    public String findVer(Iterable<FileRef> jars) {
-        FileRef ref = Iterables.find(jars, Predicates.alwaysTrue());
-        
-        final String jarName = ref.path.substring(ref.path.lastIndexOf("/") + 1);
-        System.out.println(jarName);
-        final String url = "http://search.maven.org/solrsearch/select?q=name%3A%22" + jarName + "%22%20AND%20type%3A1&rows=100000&core=filelisting&wt=json";
-        System.out.println(getter.get(url));
-        return "";
-    }
-    
     private Predicate<JsonElement> isBranchNamed(final String branchName) {
         return new Predicate<JsonElement>() {
             @Override public boolean apply(JsonElement input) {

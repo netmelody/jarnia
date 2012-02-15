@@ -36,8 +36,7 @@ public final class GithubFetcherTest {
                 return input.path.toLowerCase().endsWith(".jar");
             }
         });
-
-        System.out.println(Iterables.toString(jars));
-        fetcher.findVer(jars);
+        
+        assertThat(Iterables.size(jars), is(20));
     }
 }
